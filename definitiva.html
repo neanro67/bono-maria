@@ -11,7 +11,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_HTBIM0D7_oJWA2CL-a4u1w_-lrZ_btC
  const modal=$('modal');
  let used=0,ready=false,busy=false;
  const api=async method=>{
-   const response=await fetch(SUPABASE_URL.replace(/\\/$/,'')+'/rest/v1/rpc/'+method,{
+   const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+method,{
      method:'POST',
      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
      body:'{}',
