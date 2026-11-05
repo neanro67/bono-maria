@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#fff9fb"><title>Un regalito para María ❤️</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#fff8fc;color:#52345c}main{max-width:550px;margin:auto;padding:22px 14px 48px;text-align:center}h1{font-size:1.6rem;margin:0 0 8px}.intro{margin:0 0 18px;color:#987291;font-size:.92rem}.picture{position:relative;line-height:0;border-radius:9px;overflow:hidden;box-shadow:0 8px 27px #d9bbca}.picture img{width:100%;display:block}.mark{position:absolute;top:72.2%;height:14.7%;display:grid;place-items:center;opacity:0;pointer-events:none;transform:rotate(-12deg) scale(.8);transition:.25s}.mark.on{opacity:1;transform:rotate(-12deg) scale(1)}.mark:nth-of-type(1){left:3%;width:30%}.mark:nth-of-type(2){left:35.5%;width:31%}.mark:nth-of-type(3){left:69%;width:30%}.mark b{font-size:clamp(10px,3.7vw,22px);line-height:1;padding:5px 1px;color:#cc375c;background:#fff8edeb;border:3px solid #cc375c;border-radius:8px}.mark:before{content:"";position:absolute;width:110%;height:5px;background:#d83961;transform:rotate(-9deg)}section{margin-top:20px;padding:20px 15px;background:white;border:1px solid #f0d8e9;border-radius:22px;box-shadow:0 6px 25px #d8a7c41b}.count{font-size:1.1rem;font-weight:800}.tickets{display:flex;gap:9px;justify-content:center;margin:15px 0}.ticket{padding:8px 15px;border:1px solid #ebd3e9;border-radius:30px}.ticket.done{background:#e6f3e5;text-decoration:line-through}button{font:inherit;font-weight:750;border:0;cursor:pointer;border-radius:13px;padding:14px;width:100%}.main{background:#d7508a;color:white}.other{margin-top:10px;background:#f5eaf5;color:#775078}button:disabled{opacity:.5}.small{font-size:.76rem;color:#927f8e;line-height:1.5}.modal[hidden]{display:none}.modal{position:fixed;inset:0;z-index:5;background:#301c3177;display:grid;place-items:center;padding:20px}.dialog{background:white;width:min(100%,380px);border-radius:20px;padding:23px;text-align:center}.dialog h2{font-size:1.2rem}.actions{display:flex;gap:8px}.actions button{flex:1}
+</style></head><body><main><h1>Un regalito para María 💗</h1><p class="intro">Hecho con mucho amor</p><div class="picture"><img src="bono_maria.png?v=20261105b" alt="Bono de tres masajes de veinte minutos para María"><div class="mark"><b>CANJEADO</b></div><div class="mark"><b>CANJEADO</b></div><div class="mark"><b>CANJEADO</b></div></div><section><p id="count" class="count"></p><div class="tickets"><span class="ticket">♡ 1</span><span class="ticket">♡ 2</span><span class="ticket">♡ 3</span></div><button id="redeem" class="main"></button><p class="small" id="status">Conectando con el contador compartido…</p></section><p class="small">Hecho para ti, María ❤️</p></main><div id="modal" class="modal" hidden><div class="dialog"><h2 id="question"></h2><p id="detail"></p><div class="actions"><button id="cancel" class="other">Cancelar</button><button id="confirm" class="main">Confirmar 💗</button></div></div></div><script>
+/* Al configurar Supabase, reemplazar SOLO estas dos cadenas públicas. */
+const SUPABASE_URL = "PON_AQUI_URL_SUPABASE";
+const SUPABASE_PUBLISHABLE_KEY = "PON_AQUI_CLAVE_PUBLICABLE";
+(() => {
+ const $=id=>document.getElementById(id);
+ const modal=$('modal');
+ let used=0,ready=false,busy=false;
+ const api=async method=>{
+   const response=await fetch(SUPABASE_URL.replace(/\\/$/,'')+'/rest/v1/rpc/'+method,{
+     method:'POST',
+     headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+     body:'{}',
+     cache:'no-store'
+   });
+   if(!response.ok)throw new Error('Error de conexión: '+response.status);
+   const n=Number(await response.json());
+   if(!Number.isInteger(n)||n<0||n>3)throw new Error('Respuesta incorrecta');
+   return n;
+ };
+ function render(){
+   const n=3-used;
+   $('count').textContent=ready?(n===0?'¡Los tres masajes canjeados! 💕':n===1?'¡Te queda 1 masaje!':'¡Tienes '+n+' masajes disponibles!'):'Comprobando cupones…';
+   $('redeem').textContent=busy?'Guardando el canje…':n===0?'❤️ Todos canjeados':'💆‍♀️ Canjear masaje '+(used+1);
+   $('redeem').disabled=!ready||busy||n===0;
+   document.querySelectorAll('.mark').forEach((e,i)=>e.classList.toggle('on',i<used));
+   document.querySelectorAll('.ticket').forEach((e,i)=>{e.classList.toggle('done',i<used);e.textContent=(i<used?'✓ ':'♡ ')+(i+1)});
+ }
+ async function refresh(){
+   try{used=await api('bono_maria_consultar');ready=true;$('status').textContent='Los canjes se guardan y sincronizan entre dispositivos.';}
+   catch(e){ready=false;$('status').textContent='No se pudo conectar con el contador compartido. Revisa la configuración.';}
+   render();
+ }
+ $('redeem').onclick=()=>{
+    if(!ready||busy||used===3)return;
+    $('question').textContent='¿Canjear el masaje '+(used+1)+'?';
+    $('detail').textContent='El cupón se tachará para siempre hasta que se reinicie de forma privada.';
+    modal.hidden=false;
+ };
+ $('cancel').onclick=()=>modal.hidden=true;
+ modal.onclick=e=>{if(e.target===modal)modal.hidden=true};
+ $('confirm').onclick=async()=>{
+   if(busy)return;
+   busy=true;modal.hidden=true;render();
+   try{used=await api('bono_maria_canjear');ready=true;$('status').textContent='¡Canje guardado correctamente! ❤️';}
+   catch(e){$('status').textContent='No se pudo canjear. Comprueba tu conexión.';await refresh();}
+   finally{busy=false;render();}
+ };
+ render();refresh();
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!busy)refresh()});
+})();
+</script></body></html>
